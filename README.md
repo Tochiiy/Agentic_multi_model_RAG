@@ -1,5 +1,5 @@
 # 🤖 Agentic RAG MCP Agent
-https://Max-AI.vercel.app/
+maxai-agent.vercel.app
 
 An intelligent retrieval-augmented generation (RAG) system powered by **LangChain**, **FastAPI**, and **Model Context Protocol (MCP)**, with multimodal support for text, images, web content, and document processing.
 

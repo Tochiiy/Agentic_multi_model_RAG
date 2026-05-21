@@ -157,7 +157,7 @@ export default function ChatPanel() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-white mb-1">
-                Agentic RAG Assistant
+                Max-AI Assistant
               </h2>
               <p className="text-sm text-slate-400 max-w-sm">
                 Ask anything about your documents. I'll retrieve, analyze, and

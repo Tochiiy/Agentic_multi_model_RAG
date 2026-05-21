@@ -197,7 +197,7 @@ export default function Sidebar({ open }: Props) {
             </div>
             <div>
               <p className="text-sm font-bold text-white tracking-tight">
-                Agentic RAG
+                Max-AI
               </p>
               <p className="text-[10px] text-slate-400">Multi-Modal AI</p>
             </div>
