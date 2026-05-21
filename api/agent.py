@@ -307,4 +307,5 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     print(f"✅ Agent API running at http://0.0.0.0:{port}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Pass as a string reference so uvicorn workers resolve the module path correctly
+    uvicorn.run("api.agent:app", host="0.0.0.0", port=port, reload=False)
