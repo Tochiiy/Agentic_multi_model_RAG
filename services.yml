@@ -1,0 +1,40 @@
+services:
+  # ── Python Backend ─────────────────────────────────────────────
+  - type: web
+    name: agentic-rag-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python api/agent.py
+    envVars:
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: MCP_API_KEY
+        sync: false
+      - key: USER_AGENT
+        value: Agentic-RAG-MCP-Agent/1.0
+      - key: PORT
+        value: 8000
+
+  # ── MCP Server ─────────────────────────────────────────────────
+  - type: web
+    name: agentic-rag-mcp
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m mcp_server.mcp_server
+    envVars:
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: MCP_API_KEY
+        sync: false

@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+temp_*
+
+# Node
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+
+# Models cache
+~/.cache/huggingface/
