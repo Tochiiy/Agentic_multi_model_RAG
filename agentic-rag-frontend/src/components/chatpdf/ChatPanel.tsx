@@ -8,7 +8,7 @@ import { streamChat } from "@/api/chat";
 import ChatInput from "./chatbox/ChatInput";
 import ConvertToMarkdown from "./chatbox/ConvertToMarkdown";
 
-// ── Thinking toggle block ─────────────────────────────────────────
+// ── Thinking toggle block ───────────────────────
 function ThinkingBlock({
   thinking,
   loading,
