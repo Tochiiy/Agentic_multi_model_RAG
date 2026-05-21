@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/stores";
 import {
   addUserMessageWithAssistant,
-  clearMessages,
   fetchChatHistory,
 } from "@/stores/chatSlice";
 import { streamChat } from "@/api/chat";
