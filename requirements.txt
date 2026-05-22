@@ -12,7 +12,7 @@ mcp>=1.0.0
 # ── Cohere ──────────────────────────────────────────────────────
 langchain-cohere>=0.3.0
 cohere>=5.0.0
-fastapi
+
 # ── Pinecone ────────────────────────────────────────────────────
 langchain-pinecone>=0.2.0
 pinecone-client>=4.0.0
@@ -33,18 +33,14 @@ aiohttp>=3.9.0
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
 
-# ── HuggingFace Embeddings ──────────────────────────────────────
-langchain-huggingface>=0.1.0
-sentence-transformers>=3.0.0
-
+# ── Standard Text Document Parsers ──────────────────────────────
 pypdf>=4.0.0
 docx2txt>=0.8
-unstructured>=0.10.0
 openpyxl>=3.1.0
 python-pptx>=0.6.0
-openai-whisper>=20231117
 duckduckgo-search
 
+# ── Server App Infrastructure ───────────────────────────────────
 fastmcp>=0.1.0
 fastapi>=0.110.0
 uvicorn>=0.29.0
