@@ -14,65 +14,59 @@ import shutil
 import json
 import dotenv
 import re
+
 dotenv.load_dotenv()
 
 app = FastAPI()
 
 # ── CORS ──────────────────────────────────────────────────────────
-from fastapi.middleware.cors import CORSMiddleware
-
-
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://agentic-multi-model-rag-78vm.vercel.app",
-    "https://maxai-agent.vercel.app",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, 
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://agentic-multi-model-rag-78vm.vercel.app",
+        "https://maxai-agent.vercel.app",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ── MCP URL — uses env var in production ─────────────────────────
+MCP_URL = os.getenv("MCP_URL", "http://localhost:3001/mcp")
+
 # ── In-memory chat history ────────────────────────────────────────
 chat_history = []
 
-
 # ── Manager Prompt ────────────────────────────────────────────────
 MANAGER_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a helpful AI assistant called Agentic RAG.
+    ("system", """You are a helpful AI assistant called MAX-AI.
 
-For greetings — respond warmly in ONE short sentence only. Example: "Hello! How can I assist you today?"
-For questions — use the retrieved context, tool outputs, and calculations to answer accurately.
-If context is empty or doesn't contain the answer, use your own knowledge.
+For greetings — respond warmly in ONE short sentence only.
+For questions — use the retrieved context and web results to answer accurately.
+If context is empty, use your own knowledge.
 Always respond in plain conversational English.
-if user ask for tools, respond with a list of tools available
-Never output JSON, structured formats, thoughts, or internal reasoning.
-Never mention "context", "web search results", or any internal variables in your response.
+Never output JSON, structured formats, or internal reasoning.
+Never mention context, web search results, or internal variables.
 
 {context}
-
 {web_context}
-
-{tool_context}
 """),
     MessagesPlaceholder("chat_history"),
     ("human", "{question}"),
 ])
+
+
 # ── Call MCP Tool ─────────────────────────────────────────────────
 async def call_mcp_tool(tool_name: str, args: dict) -> str:
-    """
-    Calls a tool on the MCP server.
-    All tools live in MCP — agent.py just orchestrates.
-    """
+    """Calls a tool on the MCP server using MCP_URL env var."""
     try:
         async with httpx.AsyncClient() as client:
             # Step 1 — initialize MCP session
             init = await client.post(
-                "http://localhost:3001/mcp",
+                MCP_URL,   
                 json={
                     "jsonrpc": "2.0",
                     "id": 1,
@@ -94,7 +88,7 @@ async def call_mcp_tool(tool_name: str, args: dict) -> str:
 
             # Step 2 — call the tool
             res = await client.post(
-                "http://localhost:3001/mcp",
+                MCP_URL, 
                 json={
                     "jsonrpc": "2.0",
                     "id": 2,
@@ -125,6 +119,8 @@ async def call_mcp_tool(tool_name: str, args: dict) -> str:
         print(f"❌ MCP tool call failed: {e}")
         return ""
 
+
+# ── Health check ──────────────────────────────────────────────────
 @app.get("/")
 async def root():
     return {"status": "healthy", "agent": "MAX-AI Running"}
@@ -184,7 +180,6 @@ async def embed_url(url: str = Form(...)):
         return {"success": False, "message": f"❌ {str(e)}"}
 
 
-
 # ── POST /api/agent/upload-image ─────────────────────────────────
 @app.post("/api/agent/upload-image")
 async def upload_image(file: UploadFile = File(...)):
@@ -196,85 +191,56 @@ async def upload_image(file: UploadFile = File(...)):
         from embedding_model.embedding_model import embeddings
         from pinecone import Pinecone
 
-        # Step 1 — read image file as base64
         image_bytes = await file.read()
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
         ext = file.filename.split(".")[-1].lower()
         data_url = f"data:image/{ext};base64,{base64_image}"
 
-        # Step 2 — analyze with vision model
-        print(f"🖼️ Analyzing uploaded image: {file.filename}")
         result = read_image_tool.invoke({"image_url": data_url})
-
         if not result.get("success"):
             return {"success": False, "message": "❌ Failed to analyze image"}
 
-        # Step 3 — embed summary into Pinecone
         doc = Document(
             page_content=result["summary"],
-            metadata={
-                "image_url": file.filename,
-                "doc_type": "imageSummary",
-                "source": file.filename
-            }
+            metadata={"image_url": file.filename,
+                      "doc_type": "imageSummary",
+                      "source": file.filename}
         )
-
         pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
-        vector_store = PineconeVectorStore(index=index, embedding=embeddings)
-        vector_store.add_documents([doc])
-
+        PineconeVectorStore(index=index, embedding=embeddings).add_documents([doc])
         return {"success": True, "message": f"✅ {file.filename} analyzed and embedded!"}
     except Exception as e:
         return {"success": False, "message": f"❌ {str(e)}"}
 
 
-
 # ── Greeting detection ────────────────────────────────────────────
-GREETINGS = {"hi", "hello", "hey", "howdy", "hiya", "sup", "what's up", "good morning", "good afternoon", "good evening"}
+GREETINGS = {"hi", "hello", "hey", "howdy", "hiya", "sup",
+             "what's up", "good morning", "good afternoon", "good evening"}
 
 def is_greeting(message: str) -> bool:
     return message.lower().strip().rstrip("!?.") in GREETINGS
 
 
 # ── GET /api/agent/stream ─────────────────────────────────────────
-
 @app.get("/api/agent/stream")
 async def stream_response(message: str):
     async def generate():
         try:
             context = ""
             web_context = ""
-            tool_context = ""
 
-            # Skip tool routing entirely for basic greetings
-            if is_greeting(message):
-                print("👋 Greeting detected — skipping retrieval")
-            else:
-                # ── A. Intelligently Trigger Date & Time Tool ──────
-                time_keywords = {"date", "time", "clock", "today", "year", "now", "day"}
-                if any(word in message.lower() for word in time_keywords):
-                    print("🕒 Detected time-sensitive intent. Calling MCP get_current_datetime...")
-                    # Pass the tool parameters matching your MCP specification
-                    tool_context += await call_mcp_tool("get_current_datetime", {"timezone": "UTC"}) + "\n"
-
-                # ── B. Intelligently Trigger Calculator Tool ──────
-                # Regular expression targeting numbers paired with common mathematical operations
-                if re.search(r'\d+\s*[\+\-\*/\^]\s*\d+', message):
-                    print("🔢 Detected mathematical calculation intent. Calling MCP calculate...")
-                    tool_context += await call_mcp_tool("calculate", {"expression": message}) + "\n"
-
-                # ── C. Core RAG Retrieval ─────────────────────────
+            if not is_greeting(message):
+                # Step 1 — RAG retrieval via MCP
                 print("📚 Calling MCP retriever tool...")
-                rag_context = await call_mcp_tool("retriever", {"queries": [message]})
-                context = rag_context
+                context = await call_mcp_tool("retriever", {"queries": [message]})
 
-                # ── D. Web Search Fallback ────────────────────────
+                # Step 2 — web search fallback via MCP
                 if not context or len(context) < 200:
                     print("🌐 Calling MCP web_search tool...")
                     web_context = await call_mcp_tool("web_search", {"query": message})
 
-            # ── E. Execute LLM Text Completion Chain ──────────────
+            # Step 3 — stream LLM response
             chain = MANAGER_PROMPT | llm
             full_response = ""
 
@@ -282,7 +248,6 @@ async def stream_response(message: str):
                 "question": message,
                 "context": context,
                 "web_context": web_context,
-                "tool_context": tool_context,  # Injects math/date responses dynamically
                 "chat_history": chat_history[-6:],
             }):
                 if hasattr(chunk, "content") and chunk.content:
@@ -308,14 +273,14 @@ async def stream_response(message: str):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Origin": "*",  
         }
     )
+
 
 # ── Run ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     print(f"✅ Agent API running at http://0.0.0.0:{port}")
-    # Pass as a string reference so uvicorn workers resolve the module path correctly
     uvicorn.run("api.agent:app", host="0.0.0.0", port=port, reload=False)
