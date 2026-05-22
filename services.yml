@@ -4,7 +4,7 @@ services:
     name: agentic-rag-backend
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python api/agent.py
+    startCommand: uvicorn api.agent:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: PINECONE_API_KEY
         sync: false
@@ -26,7 +26,7 @@ services:
     name: agentic-rag-mcp
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m mcp_server.mcp_server
+    startCommand: uvicorn mcp_server.mcp_server:app --host 0.0.0.0 --port $PORT --workers 1
     envVars:
       - key: PINECONE_API_KEY
         sync: false

@@ -60,5 +60,32 @@ async def root_health_check(request: Request) -> JSONResponse:
     return JSONResponse({"status": "healthy", "server": "AGENTIC-RAG-MCP-Agent"})
 
     
-# ── 4. Run with FastMCP HTTP Transport ──────────────────────────
-app = mcp.http_app()
+# ── 4. Mount FastMCP under a FastAPI wrapper and add API-key validation
+from fastapi import FastAPI, Request, HTTPException
+
+# Create a small FastAPI app that mounts the FastMCP ASGI app at /mcp.
+# This lets us run the service with a standard ASGI server (uvicorn)
+# and add simple middleware (e.g. API key validation) at the outer level.
+app = FastAPI()
+
+MCP_API_KEY = os.getenv("MCP_API_KEY", "")
+
+
+@app.middleware("http")
+async def validate_mcp_api_key(request: Request, call_next):
+    # Only validate requests that target the mounted MCP app
+    if request.url.path.startswith("/mcp"):
+        api_key = request.headers.get("x-api-key", "").strip()
+        if not MCP_API_KEY or api_key != MCP_API_KEY:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    return await call_next(request)
+
+
+# Mount the FastMCP-generated ASGI app at the /mcp path
+mcp_app = mcp.http_app()
+app.mount("/mcp", mcp_app)
+
+
+@app.get("/")
+async def outer_root():
+    return JSONResponse({"status": "healthy", "server": "AGENTIC-RAG-MCP-Agent (MCP wrapper)"})
