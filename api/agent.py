@@ -26,6 +26,7 @@ origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://agentic-multi-model-rag-78vm.vercel.app",
+    "https://maxai-agent.vercel.app",
 ]
 
 app.add_middleware(
