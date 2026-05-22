@@ -19,14 +19,18 @@ dotenv.load_dotenv()
 app = FastAPI()
 
 # ── CORS ──────────────────────────────────────────────────────────
+from fastapi.middleware.cors import CORSMiddleware
+
+
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://agentic-multi-model-rag-78vm.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:8001",
-        "https://your-frontend.vercel.app",  # ← add after deploy
-        "*"  # temporary for testing
-    ],
+    allow_origins=origins, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,6 +122,10 @@ async def call_mcp_tool(tool_name: str, args: dict) -> str:
     except Exception as e:
         print(f"❌ MCP tool call failed: {e}")
         return ""
+
+@app.get("/")
+async def root():
+    return {"status": "healthy", "agent": "MAX-AI Running"}
 
 
 # ── GET /api/agent/chat-history ───────────────────────────────────
@@ -228,7 +236,7 @@ def is_greeting(message: str) -> bool:
 
 
 # ── GET /api/agent/stream ─────────────────────────────────────────
-# ── GET /api/agent/stream ─────────────────────────────────────────
+
 @app.get("/api/agent/stream")
 async def stream_response(message: str):
     async def generate():

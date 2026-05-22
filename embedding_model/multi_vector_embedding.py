@@ -48,12 +48,12 @@ def create_child_docs(parent_docs: list[Document]) -> list[Document]:
     for parent in parent_docs:
         children = splitter.split_documents([parent])  # split one parent at a time
 
-        for i, child in enumerate(children):           # i resets per parent ✅
-            parent_id = parent.metadata["chunk_id"]    # always correct ✅
+        for i, child in enumerate(children):           # i resets per parent
+            parent_id = parent.metadata["chunk_id"]    # always correct 
 
             child.metadata["doc_type"] = "child"
             child.metadata["parent_id"] = parent_id
-            child.metadata["chunk_id"] = f"child-{parent_id}-{i}"  # truly unique ✅
+            child.metadata["chunk_id"] = f"child-{parent_id}-{i}"  # truly unique 
             child.metadata["source"] = child.metadata["chunk_id"]
 
             all_children.append(child)
@@ -87,21 +87,21 @@ def doc_embedding_multi_vector(sources: list[str]):
             raw_docs.extend(docs)
             print(f"  ✅ Loaded {len(docs)} doc(s)")
 
-    print(f"  ✅ {len(raw_docs)} text docs, {len(image_summaries)} image summaries")
+    print(f"   {len(raw_docs)} text docs, {len(image_summaries)} image summaries")
 
     # chunk + store — same as before
     print("🔄 Chunking Phase...")
     parent_docs = create_parent_docs(raw_docs)
     child_docs = create_child_docs(parent_docs)
-    print(f"  ✅ {len(parent_docs)} parent chunks")
-    print(f"  ✅ {len(child_docs)} child chunks")
+    print(f"   {len(parent_docs)} parent chunks")
+    print(f"   {len(child_docs)} child chunks")
 
     print("💾 Storing in Pinecone...")
     vector_store = PineconeVectorStore(index=index, embedding=embeddings)
     all_docs = [*parent_docs, *child_docs, *image_summaries]
     vector_store.add_documents(all_docs)
 
-    print(f"✅ Finished embedding {len(all_docs)} total documents")
+    print(f" Finished embedding {len(all_docs)} total documents")
     return vector_store
 
 
