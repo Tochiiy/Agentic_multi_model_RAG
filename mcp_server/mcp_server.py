@@ -61,14 +61,4 @@ async def root_health_check(request: Request) -> JSONResponse:
 
     
 # ── 4. Run with FastMCP HTTP Transport ──────────────────────────
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 3001))
-    print(f"✅ MCP Server Running: http://0.0.0.0:{port}/mcp")
-    
-    # In FastMCP, transport="http" automatically runs Streamable HTTP
-    mcp.run(
-        transport="http",
-        host="0.0.0.0",
-        port=port,
-        path="/mcp"
-    )
+app = mcp.http_app()
