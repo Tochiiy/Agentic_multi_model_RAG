@@ -39,7 +39,7 @@ docx2txt>=0.8
 openpyxl>=3.1.0
 python-pptx>=0.6.0
 duckduckgo-search
-
+ddgs>=0.1.0
 # ── Server App Infrastructure ───────────────────────────────────
 fastmcp>=0.1.0
 fastapi>=0.110.0
